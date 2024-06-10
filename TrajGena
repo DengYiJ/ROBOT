@@ -1,0 +1,52 @@
+% Abstract: 根据时间和路径公式参数结构体计算当前时间点，关节位置，速度和加速度
+%
+% INPUTS:
+% time       当前时刻
+% MotionData 路径公式参数结构体，包括s, v, a, t信息
+% loc1       路径起始点，起始点位1*6的点位，也就是第一个点，函数里会对他更新
+%loc2        路径目标点
+% OUTPUT:
+% q          当前时间点，关节位置向量 1x6   MxN
+% qd         当前时间点，关节速度向量 1x6
+% qdd        当前时间点，关节加速度向量 1x6
+
+function [q, qd, qdd] = TrajGena(MotionData, loc1)
+    N = numel(MotionData.s); % 关节数量
+    
+    % 初始化输出变量
+    q = cell(1, N);
+    qd = cell(1, N);
+    qdd = cell(1, N);
+
+    % 遍历每个关节
+    for i = 1:N
+         M = numel(MotionData.t{i}); % 每个关节的时间点数量
+        % 初始化每个关节的输出变量
+        q{i} = zeros(M, 1);
+        qd{i} = zeros(M, 1);
+        qdd{i} = zeros(M, 1);
+
+        % 遍历每个时间点
+        for j = 1:M
+            % 计算当前时间点
+            t = MotionData.t{i}(j);
+
+            % 计算当前时间点的轨迹参数
+            s = MotionData.s{i}(j);
+            v = MotionData.v{i}(j);
+            a = MotionData.a{i}(j);
+
+            % 计算当前时间点的关节位置
+            q{i}(j) = loc1(i) + s;
+            loc1(i)=q{i}(j);%更新位置
+            
+            % 计算当前时间点的关节速度
+            qd{i}(j) = v;
+
+            % 计算当前时间点的关节加速度
+            qdd{i}(j) = a;
+           % if(loc1(i)==loc2)%如果到达目标点
+                
+        end
+    end
+end
