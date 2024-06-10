@@ -10,7 +10,7 @@
 % qd         当前时间点，关节速度向量 1x6
 % qdd        当前时间点，关节加速度向量 1x6
 
-function [q, qd, qdd] = TrajGena(MotionData, loc1)
+function [q, qd, qdd] = TrajGena(MotionData,loc1,signTotalLength)
     N = numel(MotionData.s); % 关节数量
     
     % 初始化输出变量
@@ -21,6 +21,7 @@ function [q, qd, qdd] = TrajGena(MotionData, loc1)
     % 遍历每个关节
     for i = 1:N
          M = numel(MotionData.t{i}); % 每个关节的时间点数量
+         disp(M);
         % 初始化每个关节的输出变量
         q{i} = zeros(M, 1);
         qd{i} = zeros(M, 1);
@@ -32,13 +33,13 @@ function [q, qd, qdd] = TrajGena(MotionData, loc1)
             t = MotionData.t{i}(j);
 
             % 计算当前时间点的轨迹参数
-            s = MotionData.s{i}(j);
+            s = MotionData.s{i}(j);%这个时间下的路径长度
             v = MotionData.v{i}(j);
             a = MotionData.a{i}(j);
 
             % 计算当前时间点的关节位置
-            q{i}(j) = loc1(i) + s;
-            loc1(i)=q{i}(j);%更新位置
+            q{i}(j) = loc1(i) + s*signTotalLength(i);
+            %loc1(i)=q{i}(j);%更新位置
             
             % 计算当前时间点的关节速度
             qd{i}(j) = v;
@@ -50,3 +51,4 @@ function [q, qd, qdd] = TrajGena(MotionData, loc1)
         end
     end
 end
+
