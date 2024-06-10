@@ -1,8 +1,8 @@
 %%一段路程测试2024/6/10
-TotalLength=[437.37,-24.42,331.28,0/180*pi,178.79/180*pi,2.860/180*pi]-[ 495.37,-126.09,331.28,0/180*pi,178.79/180*pi,2.860/180*pi];
-Vmax = [100,100, 100, 100, 100,100]; % 对应每个关节的最大速度
-Accel = [150, 150, 150, 200,200,200]; % 对应的最大加速度
-Decel = [200, 100,100, 200,200,200]; % 对应的最大减速度
+TotalLength=[437.37,-24.42,331.28,0/180*pi,178.79/180*pi,2.860/180*pi]-[495.37,-126.09,331.28,0/180*pi,178.79/180*pi,2.860/180*pi];
+Vmax = [100,100, 100, 100, 100,100]; % 对应每个关节的最大速度,卧槽，速度设为100，加速减速度设为200，成功！
+Accel = [200, 200, 150, 200,200,200]; % 对应的最大加速度
+Decel = [200, 200,100, 200,200,200]; % 对应的最大减速度
 signTotalLength = sign(TotalLength);%先搞定方向再去绝对值
 TotalLength = abs(TotalLength);
 % Accel = [50, 50, 50, 50,50,50]; % 对应的最大加速度，20会有突变
@@ -10,4 +10,4 @@ TotalLength = abs(TotalLength);
 MotionData = MotionPlanning(signTotalLength,TotalLength, Vmax, Accel, Decel);
 loc1=[ 495.37,-126.09,331.28,0/180*pi,178.79/180*pi,2.860/180*pi];
 
-[q, qd, qdd] = TrajGena(MotionData, loc1);
+[q, qd, qdd] = TrajGena(MotionData, loc1,signTotalLength);
