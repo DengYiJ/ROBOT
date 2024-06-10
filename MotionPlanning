@@ -1,0 +1,91 @@
+% Author: 
+% 3000rpm,减速比100 or 80
+% ABSTRACT:  三阶轨迹规划最基本文件
+
+% INPUTS:InterpolationCycle      计算步长，单位s 设置为0.001s
+%        TotalLength
+%        轨迹长度，1xN数组，N为轨迹自由度数，单位m或者rad，轨迹长度应该是用theta-theta，or笛卡尔坐标系确实是1xn数组
+%        Vmax                    轨迹匀速段最大速度，1xN数组，单位m/s 或rad/s
+%        Acc                     最大加速度，1xN数组，单位m/s^2 或 rad/s^2
+%        Dec                     最大减速度，1xN数组，单位m/s^2 或 rad/s^2,输入的是正数
+% 
+% OUTPUTS:MotionData             轨迹公式参数，
+%         s 	                 轨迹长度数组，NxM数组，单位m 或 rad,M 是每个关节轨迹的时间点数量
+%         v 	                 速度数组，NxM数组，单位m/s 或rad/s
+%         a 	                 加速度数组，NxM数组，单位m/s^2 或 rad/s^2
+%         t 	                 时间数组，Mx1数组，单位s
+%         maxtime 	             所需时间，单位s
+%生成了两点间totallength的轨迹，输出的是轨迹中各个时间点的速度，加速度，位置
+function MotionData = MotionPlanning(signTotalLength,TotalLength, Vmax, Accel, Decel)
+InterpolationCycle = 0.001; % 计算步长，单位s
+     N = 6; % 轨迹自由度数，六轴机器人，所以自由度为6
+    s = cell(N, 1);
+    v = cell(N, 1);
+    a = cell(N, 1);
+    t = cell(N, 1);
+    maxtime = zeros(N, 1);
+
+    for i = 1:N%计算6个轴
+        % 计算加速时间，加速段和减速段所需时间
+        t_accel = Vmax(i) / Accel(i);
+        t_decel = Vmax(i) / Decel(i);
+        % 计算加速段和减速段所需位移
+        s_accel = 0.5 * Accel(i) * t_accel^2;
+        s_decel = 0.5 * Decel(i) * t_decel^2;
+        % 判断是否存在匀速段
+        if s_accel + s_decel < TotalLength(i)
+            % 存在匀速段
+            s_const = TotalLength(i) - s_accel -s_decel;
+            t_const = s_const / Vmax(i);
+            maxtime(i) = t_accel + t_const + t_decel;
+        else
+            % 不存在匀速段
+            t_const=0;
+            %因为可能有往回走，路程为负的情景，所以应该将length取正？
+           
+            t_accel = sqrt(2 * TotalLength(i) / (Accel(i) + Accel(i)^2 / Decel(i)));
+            t_decel = t_accel * Accel(i) / Decel(i);
+            maxtime(i) = t_accel + t_decel;
+        end
+
+        % 生成时间序列,插点进去，准备生成轨迹
+        t{i} = 0:InterpolationCycle:maxtime(i);
+
+        % 初始化轨迹参数
+        s{i} = zeros(size(t{i}));%sizet(i)是有几个时间点，初始化同等数量的矩阵来储存s，v，a
+        v{i} = zeros(size(t{i}));
+        a{i} = zeros(size(t{i}));
+        
+        for j = 1:length(t{i})%每一个插值周期中，我都将每一个关节的s,v,a存入了MotionData
+            
+            if t{i}(j) < t_accel
+                % 加速段
+                s{i}(j) = 0.5 * Accel(i) * t{i}(j)^2 * signTotalLength(i);
+                v{i}(j) = Accel(i) * t{i}(j) * signTotalLength(i);
+                a{i}(j) = Accel(i) * signTotalLength(i);
+            elseif t{i}(j) < (t_accel + t_const)
+                % 匀速段
+                s{i}(j) = (s_accel + Vmax(i) * (t{i}(j) - t_accel)) * signTotalLength(i);
+                v{i}(j) = Vmax(i) * signTotalLength(i);
+                a{i}(j) = 0;
+            else
+                % 减速段
+                t_decel_time = t{i}(j) - t_accel - t_const;
+                s{i}(j) = (TotalLength(i) - 0.5 * Decel(i) * t_decel_time^2) * signTotalLength(i);
+                v{i}(j) = (Vmax(i) - Decel(i) * t_decel_time) * signTotalLength(i);
+                a{i}(j) = -Decel(i) * signTotalLength(i);
+            end
+        end
+    end
+
+    % 输出结果
+    MotionData.s = s;
+    MotionData.v = v;
+    MotionData.a = a;
+    MotionData.t = t;
+    MotionData.maxtime = maxtime;%一段路程的用时
+   
+  
+end
+
+
