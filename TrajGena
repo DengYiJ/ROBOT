@@ -12,28 +12,35 @@
 
 function [q, qd, qdd] = TrajGena(MotionData,loc1,signTotalLength)
     N = numel(MotionData.s); % 关节数量
-    
+    counter=0;
     % 初始化输出变量
     q = cell(1, N);
     qd = cell(1, N);
     qdd = cell(1, N);
-
+  
+    % 找到最多时间点的关节数量
+    maxM = 0;
+    for i = 1:N
+        maxM = max(maxM, numel(MotionData.t{i}));
+    end
+    i=1;
     % 遍历每个关节
     for i = 1:N
-         M = numel(MotionData.t{i}); % 每个关节的时间点数量
-         disp(M);
+         M = numel(MotionData.t{i}); % 当前关节的时间点数量
+         %disp(M);
         % 初始化每个关节的输出变量
-        q{i} = zeros(M, 1);
-        qd{i} = zeros(M, 1);
-        qdd{i} = zeros(M, 1);
+        q{i} = zeros(maxM, 1);
+        qd{i} = zeros(maxM, 1);
+        qdd{i} = zeros(maxM, 1);
 
         % 遍历每个时间点
+        
         for j = 1:M
             % 计算当前时间点
             t = MotionData.t{i}(j);
 
             % 计算当前时间点的轨迹参数
-            s = MotionData.s{i}(j);%这个时间下的路径长度
+            s = MotionData.s{i}(j);%这个时间下的路径长度q
             v = MotionData.v{i}(j);
             a = MotionData.a{i}(j);
 
@@ -42,13 +49,31 @@ function [q, qd, qdd] = TrajGena(MotionData,loc1,signTotalLength)
             %loc1(i)=q{i}(j);%更新位置
             
             % 计算当前时间点的关节速度
-            qd{i}(j) = v;
-
+            %如果没有动，则速度为0
+    
+           
+         
+                qd{i}(j) = v;
+            
             % 计算当前时间点的关节加速度
             qdd{i}(j) = a;
            % if(loc1(i)==loc2)%如果到达目标点
-                
+              counter=counter+1;  
         end
+        
+        if(counter<maxM)%如果当前关节时间点数小于最大关节时间点数，将它补齐
+            for j = counter:maxM
+                % 计算当前时间点的关节位置
+            q{i}(j) =q{i}(M);
+            
+            % 计算当前时间点的关节速度
+            qd{i}(j) = MotionData.v{i}(M);
+
+            % 计算当前时间点的关节加速度
+            qdd{i}(j) = MotionData.a{i}(M);
+            end
+        end
+        counter=0;
+        
     end
 end
-
