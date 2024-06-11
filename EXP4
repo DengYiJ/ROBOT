@@ -1,0 +1,125 @@
+% %%一段路程测试2024/6/10
+% TotalLength=[437.37,-24.42,331.28,0/180*pi,178.79/180*pi,2.860/180*pi]-[495.37,-126.09,331.28,0/180*pi,178.79/180*pi,2.860/180*pi];
+% Vmax = [100,100, 100, 100, 100,100]; % 对应每个关节的最大速度,卧槽，速度设为100，加速减速度设为200，成功！
+% Accel = [200, 200, 150, 200,200,200]; % 对应的最大加速度
+% Decel = [200, 200,150, 200,200,200]; % 对应的最大减速度
+% signTotalLength = sign(TotalLength);%先搞定方向再去绝对值
+% TotalLength = abs(TotalLength);
+% MotionData = MotionPlanning(signTotalLength,TotalLength, Vmax, Accel, Decel);
+% loc1=[ 495.37,-126.09,331.28,0/180*pi,178.79/180*pi,2.860/180*pi];
+% 
+% [q, qd, qdd] = TrajGena(MotionData, loc1,signTotalLength);
+
+%%实验4
+clc 
+clear all;
+%路径规划
+waypoints = [
+%     %课程设计
+%     495.37,-126.09,331.28,0/180*pi,178.79/180*pi,2.860/180*pi;
+%     437.37,-24.42,331.28,0/180*pi,178.79/180*pi,2.860/180*pi;
+%     467.37,-4.42,331.28,0/180*pi,178.79/180*pi,2.860/180*pi;
+%     467.37,6.41,331.28,0/180*pi,178.79/180*pi,2.860/180*pi;
+%     455.7,24.41,331.28,0/180*pi,178.79/180*pi,2.860/180*pi;
+%     455.7,133.91,331.28,0/180*pi,178.79/180*pi,2.860/180*pi;
+   %实验4
+   471.089,0.42,500.348,0/180*pi,178.79/180*pi,2.860/180*pi;
+471.090,135.042,500.348,0/180*pi,178.79/180*pi,2.860/180*pi;
+471.090,135.042,350.348,0/180*pi,178.79/180*pi,2.860/180*pi;
+471.090,-139.958,500.348,0/180*pi,178.79/180*pi,2.860/180*pi;
+471.090,-139.958,350.349,0/180*pi,178.79/180*pi,2.860/180*pi;
+];
+
+% 计算每一段路径的长度和方向
+n = size(waypoints, 1);
+segmentLengths = zeros(n-1, 6);
+
+for i = 1:n-1
+    segmentLengths(i,:) = waypoints(i+1,:) - waypoints(i,:);
+  end
+% 为每一段路径生成轨迹参数
+Vmax = [50, 50, 50, 60, 50, 50]; % 对应每个关节的最大速度 %100
+Accel = [600, 600, 150, 200, 200, 200]; % 对应的最大加速度
+Decel = [600, 600, 150, 200, 200, 200]; % 对应的最大减速度
+combinedMotionData = cell(n-1, 1);%点-1段路径
+for i = 1:n-1 %6个途径点，五个途径，循环5次
+    signTotalLength = sign(segmentLengths(i,:));
+    TotalLength = abs(segmentLengths(i,:));
+    combinedMotionData{i} = MotionPlanning(signTotalLength, TotalLength, Vmax, Accel, Decel);
+end
+
+combined_q = {};
+combined_qd = {};
+combined_qdd = {};
+loc = waypoints(1,:);
+for i = 1:n-1
+    signTotalLength = sign(segmentLengths(i,:));
+    [q, qd, qdd] = TrajGena(combinedMotionData{i}, loc,signTotalLength);%,signTotalLength
+    combined_q = [combined_q; {q}];
+    combined_qd = [combined_qd; {qd}];
+    combined_qdd = [combined_qdd; {qdd}];
+    loc = waypoints(i+1,:);
+end
+
+% 显示合并后的轨迹参数
+disp('Combined q:');
+disp(combined_q);
+disp('Combined qd:');
+disp(combined_qd);
+disp('Combined qdd:');
+disp(combined_qdd);
+
+%获得五段路径所有参数
+q_final1=[];
+q_final2=[];
+q_final3=[];
+q_final4=[];
+q_final5=[];
+q_final6=[];
+qd_final1=[];
+qd_final2=[];
+qd_final3=[];
+qd_final4=[];
+qd_final5=[];
+qd_final6=[];
+qdd_final1=[];
+qdd_final2=[];
+qdd_final3=[];
+qdd_final4=[];
+qdd_final5=[];
+qdd_final6=[];
+for i=1:n-1
+    
+q_final1=[q_final1;combined_q{i,1}{1,1}(:,1)];
+q_final2=[q_final2;combined_q{i,1}{1,2}(:,1)];
+q_final3=[q_final3;combined_q{i,1}{1,3}(:,1)];
+q_final4=[q_final4;combined_q{i,1}{1,4}(:,1)];
+q_final5=[q_final5;combined_q{i,1}{1,5}(:,1)];
+q_final6=[q_final6;combined_q{i,1}{1,6}(:,1)];
+
+qd_final1=[qd_final1;combined_qd{i,1}{1,1}(:,1)];
+qd_final2=[qd_final2;combined_qd{i,1}{1,2}(:,1)];
+qd_final3=[qd_final3;combined_qd{i,1}{1,3}(:,1)];
+qd_final4=[qd_final4;combined_qd{i,1}{1,4}(:,1)];
+qd_final5=[qd_final5;combined_qd{i,1}{1,5}(:,1)];
+qd_final6=[qd_final6;combined_qd{i,1}{1,6}(:,1)];
+
+qdd_final1=[qdd_final1;combined_qdd{i,1}{1,1}(:,1)];
+qdd_final2=[qdd_final2;combined_qdd{i,1}{1,2}(:,1)];
+qdd_final3=[qdd_final3;combined_qdd{i,1}{1,3}(:,1)];
+qdd_final4=[qdd_final4;combined_qdd{i,1}{1,4}(:,1)];
+qdd_final5=[qdd_final5;combined_qdd{i,1}{1,5}(:,1)];
+qdd_final6=[qdd_final6;combined_qdd{i,1}{1,6}(:,1)];
+end
+
+%合并所有q,qd,qdd
+%t=[];
+q=[q_final1,q_final2,q_final3,q_final4,q_final5,q_final6];
+qd=[qd_final1,qd_final2,qd_final3,qd_final4,qd_final5,qd_final6];
+qdd=[qdd_final1,qdd_final2,qdd_final3,qdd_final4,qdd_final5,qdd_final6];
+[sizeq, ~] = size(q);
+t = linspace(0, 0.001 * sizeq, sizeq)';
+%运用逆运动学转换坐标
+[ddd, q, qd, qdd] =trans(q,qd,qdd);
+data=q/pi*180
+writematrix(data,'data.txt');
