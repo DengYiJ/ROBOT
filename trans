@@ -1,0 +1,102 @@
+%%运用运动学逆解转换坐标
+function [ddd, q, qd, qdd] = TrajGena(qq,qqd,qqdd)
+    % 关节角度的上下限，单位：弧度
+    c11 = 170/180*pi;
+    c12 = -170/180*pi;
+    c21 = 120/180*pi;
+    c22 = -120/180*pi;
+    c31 = 228/180*pi;
+    c32 = -48/180*pi;
+    c41 = 170/180*pi;
+    c42 = -170/180*pi;
+    c51 = 180/180*pi;
+    c52 = -180/180*pi;
+    c61 = 360/180*pi;
+    c62 = -360/180*pi;
+    
+    % 获取 MotionData.s 的长度
+%     M = numel(MotionData.s{1});
+    [M, ~] = size(qq);
+    % 初始化各种矩阵
+    q1 = zeros(8, 6, M);
+    q2 = zeros(6, M);
+    q = zeros(M, 6);
+    qd = zeros(M, 6);
+    qd1 = zeros(M, 6);
+    qdd = zeros(M, 6);
+    ddd = zeros(M, 1);
+    config = [491, 450, 450, 84];
+    
+    % 解析位移数据
+%     st = zeros(6, M);
+%     for i = 1:6
+%         st(i, :) = cell2mat(MotionData.s(i));
+%     end
+    
+    x = qq(:,1);
+    y = qq(:,2);
+    z = qq(:,3);
+    alpha = qq(:,4);
+    beta = qq(:,5);
+    gama = qq(:,6);
+    
+    % 定义旋转矩阵基础
+    zj = [0, -1, 0; 1, 0, 0; 0, 0, 0];
+    yj = [0, 0, 1; 0, 0, 0; -1, 0, 0];
+    
+    % 遍历每一个时间点，计算关节位置
+    for i = 1:M
+        % 计算旋转矩阵
+        R = expm(zj .* alpha(i)) * expm(yj .* beta(i)) * expm(zj .* gama(i));
+        % 计算位置向量
+        p = [x(i); y(i); z(i)];
+        % 构建齐次变换矩阵
+        g_st = [R, p; 0, 0, 0, 1];
+        % 逆运动学计算 (这里可以替换为您的逆运动学函数)
+        q1(:, :, i) = Ikine6s2(g_st);
+        
+        % 验证解的有效性并选择合适的解
+        for j = 1:8
+            im = imag(q1(j, :, i));
+            tf = ~any(im);  % 检查是否为实数解
+            if tf
+                if (q1(j, 1, i) >= c12 && q1(j, 1, i) <= c11 && ...
+                    q1(j, 2, i) >= c22 && q1(j, 2, i) <= c21 && ...
+                    q1(j, 3, i) >= c32 && q1(j, 3, i) <= c31 && ...
+                    q1(j, 4, i) >= c42 && q1(j, 4, i) <= c41 && ...
+                    q1(j, 5, i) >= c52 && q1(j, 5, i) <= c51 && ...
+                    q1(j, 6, i) >= c62 && q1(j, 6, i) <= c61)
+                    
+                    % 选择有效解
+                    q2(:, i) = q1(j, :, i);
+                    ddd(i) = j;
+                    break;
+                end
+            end
+            if tf == 0 && j == 8
+                % 如果没有有效解，使用前一个时间点的解
+                q2(:, i) = q2(:, i-1);
+                ddd(i) = 0;
+            end
+        end
+    end
+    
+    % 计算速度和加速度
+    for i = 1:M
+        q(i, :) = q2(:, i).';
+        if i == M || i == M-1 || i == M-2
+            qd(i, :) = (q2(:, i).' - q2(:, i-1).') / 0.001;
+            qd1(i, :) = (q2(:, i-1).' - q2(:, i-2).') / 0.001;
+            qdd(i, :) = (qd(i, :) - qd1(i, :)) / 0.001;
+        else
+            qd(i, :) = (q2(:, i+1).' - q2(:, i).') / 0.001;
+            qd1(i, :) = (q2(:, i+2).' - q2(:, i+1).') / 0.001;
+            qdd(i, :) = (qd1(i, :) - qd(i, :)) / 0.001;
+        end
+    end
+    
+    % 可选：将角度单位从弧度转换为度
+    % q = q * 180 / pi;
+    % qd = qd * 180 / pi;
+    % qdd = qdd * 180 / pi;
+end
